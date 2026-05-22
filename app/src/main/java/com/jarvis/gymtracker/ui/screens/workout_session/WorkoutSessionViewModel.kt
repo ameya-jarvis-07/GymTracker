@@ -43,11 +43,15 @@ class WorkoutSessionViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val todayMuscleGroups: StateFlow<List<String>> = flow {
-        val dayOfWeek = LocalDate.now().dayOfWeek.value
-        val split = workoutRepository.getSplitForDay(dayOfWeek)
-        emit(split?.muscleGroups?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList())
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val todayMuscleGroups: StateFlow<List<String>> = workoutRepository.getAllSplits()
+        .map { splits ->
+            val dayOfWeek = LocalDate.now().dayOfWeek.value
+            val split = splits.find { it.dayOfWeek == dayOfWeek }
+            split?.muscleGroups?.split(",")
+                ?.map { it.trim() }
+                ?.filter { it.isNotBlank() && it != "Rest Day" } ?: emptyList()
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val availableExercises: StateFlow<List<ExerciseEntity>> = workoutRepository.getAllExercises()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

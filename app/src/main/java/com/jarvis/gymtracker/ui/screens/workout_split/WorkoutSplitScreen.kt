@@ -26,7 +26,10 @@ fun WorkoutSplitScreen(
     val splits by viewModel.splits.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
     var selectedDay by remember { mutableStateOf(1) }
-    var muscleGroupsText by remember { mutableStateOf("") }
+    
+    // Exact muscle groups as requested
+    val allMuscleGroups = listOf("Leg", "Shoulder", "Chest", "Triceps", "Back", "Biceps", "Forearms", "Abs")
+    var selectedMuscleGroups by remember { mutableStateOf(setOf<String>()) }
 
     Scaffold(
         topBar = {
@@ -47,7 +50,10 @@ fun WorkoutSplitScreen(
                     muscleGroups = split?.muscleGroups ?: "Rest Day",
                     onEditClick = {
                         selectedDay = day
-                        muscleGroupsText = split?.muscleGroups ?: ""
+                        selectedMuscleGroups = split?.muscleGroups?.split(",")
+                            ?.map { it.trim() }
+                            ?.filter { it.isNotEmpty() && it != "Rest Day" }
+                            ?.toSet() ?: emptySet()
                         showDialog = true
                     }
                 )
@@ -57,18 +63,38 @@ fun WorkoutSplitScreen(
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },
-                title = { Text("Edit Split for ${DayOfWeek.of(selectedDay).getDisplayName(TextStyle.FULL, Locale.getDefault())}") },
+                title = { Text("Split for ${DayOfWeek.of(selectedDay).getDisplayName(TextStyle.FULL, Locale.getDefault())}") },
                 text = {
-                    OutlinedTextField(
-                        value = muscleGroupsText,
-                        onValueChange = { muscleGroupsText = it },
-                        label = { Text("Muscle Groups (e.g., Chest, Triceps)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    Column {
+                        allMuscleGroups.forEach { muscleGroup ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Checkbox(
+                                    checked = selectedMuscleGroups.contains(muscleGroup),
+                                    onCheckedChange = { checked ->
+                                        selectedMuscleGroups = if (checked) {
+                                            selectedMuscleGroups + muscleGroup
+                                        } else {
+                                            selectedMuscleGroups - muscleGroup
+                                        }
+                                    }
+                                )
+                                Text(
+                                    text = muscleGroup,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                        }
+                    }
                 },
                 confirmButton = {
                     Button(onClick = {
-                        viewModel.updateSplit(selectedDay, muscleGroupsText)
+                        val muscleGroupsText = selectedMuscleGroups.sorted().joinToString(", ")
+                        viewModel.updateSplit(selectedDay, muscleGroupsText.ifEmpty { "Rest Day" })
                         showDialog = false
                     }) {
                         Text("Save")
