@@ -75,18 +75,32 @@ fun WorkoutSessionScreen(
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(selectedExercises) { exerciseWithLogs ->
-                    ExerciseCard(
-                        exerciseWithLogs = exerciseWithLogs,
-                        onAddSet = { viewModel.addSet(exerciseWithLogs.exercise.id) },
-                        onUpdateLog = { log, reps, weight -> viewModel.updateLog(log, reps, weight) }
-                    )
+                if (selectedExercises.isEmpty()) {
+                    item {
+                        Text(
+                            text = "Choose an exercise to begin:",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+                    items(todayMuscleGroups) { muscleGroup ->
+                        MuscleGroupTile(
+                            muscleGroup = muscleGroup,
+                            exercises = availableExercises.filter { it.muscleGroup == muscleGroup },
+                            onExerciseSelected = { viewModel.addExerciseToSession(it) }
+                        )
+                    }
+                } else {
+                    items(selectedExercises) { exerciseWithLogs ->
+                        ExerciseCard(
+                            exerciseWithLogs = exerciseWithLogs,
+                            onAddSet = { viewModel.addSet(exerciseWithLogs.exercise.id) },
+                            onUpdateLog = { log, reps, weight -> viewModel.updateLog(log, reps, weight) }
+                        )
+                    }
                 }
             }
         }
@@ -106,6 +120,31 @@ fun WorkoutSessionScreen(
 }
 
 @Composable
+fun MuscleGroupTile(
+    muscleGroup: String,
+    exercises: List<ExerciseEntity>,
+    onExerciseSelected: (ExerciseEntity) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = muscleGroup, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            exercises.forEach { exercise ->
+                OutlinedButton(
+                    onClick = { onExerciseSelected(exercise) },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                ) {
+                    Text(exercise.exerciseName)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun ExerciseCard(
     exerciseWithLogs: ExerciseWithLogs,
     onAddSet: () -> Unit,
@@ -118,7 +157,7 @@ fun ExerciseCard(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             
             exerciseWithLogs.logs.forEachIndexed { index, log ->
                 SetRow(
@@ -149,14 +188,11 @@ fun SetRow(
     var weight by remember(log.id) { mutableStateOf(if (log.weight == 0.0) "" else log.weight.toString()) }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(text = "Set $setNumber", modifier = Modifier.width(50.dp))
-        
+        Text(text = "Set $setNumber", modifier = Modifier.width(50.dp), style = MaterialTheme.typography.labelLarge)
         OutlinedTextField(
             value = reps,
             onValueChange = { 
@@ -166,7 +202,6 @@ fun SetRow(
             label = { Text("Reps") },
             modifier = Modifier.weight(1f)
         )
-        
         OutlinedTextField(
             value = weight,
             onValueChange = { 
@@ -205,7 +240,6 @@ fun ExercisePickerDialog(
                     }
                     item { HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) }
                 }
-                
                 item {
                     Text(
                         text = "All Exercises",

@@ -7,6 +7,7 @@ import com.jarvis.gymtracker.data.local.entity.ExerciseLogEntity
 import com.jarvis.gymtracker.data.local.entity.WorkoutSessionEntity
 import com.jarvis.gymtracker.domain.repository.WorkoutRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -19,11 +20,28 @@ class WorkoutSessionViewModel @Inject constructor(
     private val workoutRepository: WorkoutRepository
 ) : ViewModel() {
 
-    val activeSession = workoutRepository.getActiveSession()
+    val activeSession: StateFlow<WorkoutSessionEntity?> = workoutRepository.getActiveSession()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val _selectedExercises = MutableStateFlow<List<ExerciseWithLogs>>(emptyList())
-    val selectedExercises = _selectedExercises.asStateFlow()
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val selectedExercises: StateFlow<List<ExerciseWithLogs>> = activeSession
+        .flatMapLatest { session ->
+            if (session == null) flowOf(emptyList())
+            else {
+                combine(
+                    workoutRepository.getLogsForSession(session.id),
+                    workoutRepository.getAllExercises()
+                ) { logs, exercises ->
+                    val groupedLogs = logs.groupBy { it.exerciseId }
+                    groupedLogs.mapNotNull { (exerciseId, exerciseLogs) ->
+                        exercises.find { it.id == exerciseId }?.let { exercise ->
+                            ExerciseWithLogs(exercise, exerciseLogs.sortedBy { it.setNumber })
+                        }
+                    }
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val todayMuscleGroups: StateFlow<List<String>> = flow {
         val dayOfWeek = LocalDate.now().dayOfWeek.value
@@ -31,38 +49,8 @@ class WorkoutSessionViewModel @Inject constructor(
         emit(split?.muscleGroups?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val availableExercises = workoutRepository.getAllExercises()
+    val availableExercises: StateFlow<List<ExerciseEntity>> = workoutRepository.getAllExercises()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    init {
-        viewModelScope.launch {
-            activeSession.collectLatest { session ->
-                if (session != null) {
-                    loadLogsForSession(session.id)
-                } else {
-                    _selectedExercises.value = emptyList()
-                }
-            }
-        }
-    }
-
-    private fun loadLogsForSession(sessionId: Long) {
-        viewModelScope.launch {
-            combine(
-                workoutRepository.getLogsForSession(sessionId),
-                workoutRepository.getAllExercises()
-            ) { logs, exercises ->
-                val groupedLogs = logs.groupBy { it.exerciseId }
-                groupedLogs.mapNotNull { (exerciseId, exerciseLogs) ->
-                    exercises.find { it.id == exerciseId }?.let { exercise ->
-                        ExerciseWithLogs(exercise, exerciseLogs.sortedBy { it.setNumber })
-                    }
-                }
-            }.collect { exercisesWithLogs ->
-                _selectedExercises.value = exercisesWithLogs
-            }
-        }
-    }
 
     fun startNewSession() {
         viewModelScope.launch {
@@ -90,7 +78,7 @@ class WorkoutSessionViewModel @Inject constructor(
 
     fun addSet(exerciseId: Long) {
         val currentSession = activeSession.value ?: return
-        val exerciseWithLogs = _selectedExercises.value.find { it.exercise.id == exerciseId } ?: return
+        val exerciseWithLogs = selectedExercises.value.find { it.exercise.id == exerciseId } ?: return
         val nextSetNumber = (exerciseWithLogs.logs.maxOfOrNull { it.setNumber } ?: 0) + 1
         
         viewModelScope.launch {

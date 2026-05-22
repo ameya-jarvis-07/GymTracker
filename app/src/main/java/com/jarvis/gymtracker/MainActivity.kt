@@ -55,30 +55,30 @@ class MainActivity : ComponentActivity() {
             }
 
             GymTrackerTheme(darkTheme = isDarkTheme) {
-                IronLogAppContent()
+                IronLogMainContent()
             }
         }
     }
 }
 
 @Composable
-fun IronLogAppContent() {
+fun IronLogMainContent() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
     val navItems = listOf(
-        IronLogTopLevelDestination.HOME,
-        IronLogTopLevelDestination.WORKOUT,
-        IronLogTopLevelDestination.HISTORY,
-        IronLogTopLevelDestination.PROGRESS,
-        IronLogTopLevelDestination.PROFILE
+        IronLogNavItem.HOME,
+        IronLogNavItem.WORKOUT,
+        IronLogNavItem.HISTORY,
+        IronLogNavItem.PROGRESS,
+        IronLogNavItem.PROFILE
     )
 
     val currentRoute = currentDestination?.route
-    val shouldShowNavigation = navItems.any { it.route == currentRoute }
+    val isBottomBarVisible = navItems.any { it.route == currentRoute }
 
-    if (shouldShowNavigation) {
+    if (isBottomBarVisible) {
         NavigationSuiteScaffold(
             navigationSuiteItems = {
                 navItems.forEach { item ->
@@ -93,7 +93,7 @@ fun IronLogAppContent() {
                         selected = currentDestination?.hierarchy?.any { it.route == item.route } == true,
                         onClick = {
                             navController.navigate(item.route) {
-                                popTo(navController.graph.findStartDestination().id) {
+                                popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true
                                 }
                                 launchSingleTop = true
@@ -139,7 +139,7 @@ fun IronLogNavGraph(navController: androidx.navigation.NavHostController) {
     }
 }
 
-enum class IronLogTopLevelDestination(
+enum class IronLogNavItem(
     val label: String,
     val icon: Int,
     val route: String
@@ -147,6 +147,6 @@ enum class IronLogTopLevelDestination(
     HOME("Home", R.drawable.ic_home, Screen.Home.route),
     WORKOUT("Split", R.drawable.ic_calendar, Screen.WorkoutSplit.route),
     HISTORY("History", R.drawable.ic_history, Screen.History.route),
-    PROGRESS("Progress", R.drawable.ic_analytics, Screen.Progress.route),
+    PROGRESS("Stats", R.drawable.ic_analytics, Screen.Progress.route),
     PROFILE("Profile", R.drawable.ic_person, Screen.Profile.route),
 }
