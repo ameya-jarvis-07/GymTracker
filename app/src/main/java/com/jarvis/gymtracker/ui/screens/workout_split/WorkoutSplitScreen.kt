@@ -1,6 +1,7 @@
 package com.jarvis.gymtracker.ui.screens.workout_split
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -116,10 +117,7 @@ fun SplitDayItem(
     muscleGroups: String,
     onEditClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onEditClick
-    ) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth().clickable { onEditClick() }) {
         Row(
             modifier = Modifier
                 .padding(16.dp)

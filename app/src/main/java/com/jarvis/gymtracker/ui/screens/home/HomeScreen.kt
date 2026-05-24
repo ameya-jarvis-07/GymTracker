@@ -81,12 +81,7 @@ fun HomeScreen(
 
 @Composable
 fun StreakCard(streak: Int) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .padding(24.dp)
@@ -116,9 +111,7 @@ fun TodayWorkoutCard(
     attendance: com.jarvis.gymtracker.data.local.entity.AttendanceEntity?,
     onStartWorkout: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)

@@ -9,6 +9,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -30,7 +35,15 @@ fun WorkoutSessionScreen(
     val availableExercises by viewModel.availableExercises.collectAsState()
     val todayMuscleGroups by viewModel.todayMuscleGroups.collectAsState()
     
-    var showExercisePicker by remember { mutableStateOf(false) }
+    var showExercisePicker by rememberSaveable { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        viewModel.exerciseAddedEvent.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -61,6 +74,8 @@ fun WorkoutSessionScreen(
                 )
             }
         }
+        ,
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         if (activeSession == null) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
@@ -93,16 +108,26 @@ fun WorkoutSessionScreen(
                             navController = navController,
                             muscleGroup = muscleGroup,
                             exercises = availableExercises.filter { it.muscleGroup == muscleGroup },
-                            onExerciseSelected = { viewModel.addExerciseToSession(it) }
+                            onExerciseSelected = { exercise ->
+                                if (activeSession != null) {
+                                    viewModel.addExerciseToSession(exercise)
+                                } else {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Start a session first")
+                                    }
+                                }
+                            }
                         )
                     }
                 } else {
                     items(selectedExercises) { exerciseWithLogs ->
-                        ExerciseCard(
-                            exerciseWithLogs = exerciseWithLogs,
-                            onAddSet = { viewModel.addSet(exerciseWithLogs.exercise.id) },
-                            onUpdateLog = { log, reps, weight -> viewModel.updateLog(log, reps, weight) }
-                        )
+                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                            ExerciseCard(
+                                exerciseWithLogs = exerciseWithLogs,
+                                onAddSet = { viewModel.addSet(exerciseWithLogs.exercise.id) },
+                                onUpdateLog = { log, reps, weight -> viewModel.updateLog(log, reps, weight) }
+                            )
+                        }
                     }
                 }
             }
@@ -114,7 +139,13 @@ fun WorkoutSessionScreen(
                 todayMuscleGroups = todayMuscleGroups,
                 onDismiss = { showExercisePicker = false },
                 onExerciseSelected = { exercise ->
-                    viewModel.addExerciseToSession(exercise)
+                    if (activeSession != null) {
+                        viewModel.addExerciseToSession(exercise)
+                    } else {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Start a session first")
+                        }
+                    }
                     showExercisePicker = false
                 }
             )
@@ -129,10 +160,7 @@ fun MuscleGroupTile(
     exercises: List<ExerciseEntity>,
     onExerciseSelected: (ExerciseEntity) -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-    ) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Header is clickable: opens a dedicated screen listing only this muscle group's exercises
             Text(
@@ -162,7 +190,7 @@ fun ExerciseCard(
     onAddSet: () -> Unit,
     onUpdateLog: (ExerciseLogEntity, Int, Double) -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 text = exerciseWithLogs.exercise.exerciseName,

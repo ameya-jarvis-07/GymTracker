@@ -35,7 +35,7 @@ fun ProgressScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
                             text = "Attendance Consistency",
@@ -44,7 +44,7 @@ fun ProgressScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         LinearProgressIndicator(
-                            progress = consistency.toFloat(),
+                            progress = { consistency.toFloat() },
                             modifier = Modifier.fillMaxWidth().height(8.dp),
                             strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                         )
@@ -66,7 +66,7 @@ fun ProgressScreen(
             }
 
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         if (monthlyWorkouts.isEmpty()) {
                             Text("No data available yet.", color = MaterialTheme.colorScheme.outline)

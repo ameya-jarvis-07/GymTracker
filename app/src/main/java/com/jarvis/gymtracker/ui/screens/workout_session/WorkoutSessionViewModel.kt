@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import android.util.Log
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -19,6 +20,9 @@ import javax.inject.Inject
 class WorkoutSessionViewModel @Inject constructor(
     private val workoutRepository: WorkoutRepository
 ) : ViewModel() {
+
+    private val _exerciseAddedEvent = MutableSharedFlow<String>()
+    val exerciseAddedEvent: SharedFlow<String> = _exerciseAddedEvent.asSharedFlow()
 
     val activeSession: StateFlow<WorkoutSessionEntity?> = workoutRepository.getActiveSession()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -83,7 +87,13 @@ class WorkoutSessionViewModel @Inject constructor(
                 reps = 0,
                 weight = 0.0
             )
-            workoutRepository.insertLog(log)
+            try {
+                workoutRepository.insertLog(log)
+                _exerciseAddedEvent.emit("Added ${exercise.exerciseName}")
+            } catch (e: Exception) {
+                Log.e("WorkoutSessionVM", "Failed to add exercise: ${e.message}")
+                _exerciseAddedEvent.emit("Failed to add exercise")
+            }
         }
     }
 

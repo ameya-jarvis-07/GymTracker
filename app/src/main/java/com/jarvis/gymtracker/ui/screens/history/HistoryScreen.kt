@@ -1,6 +1,7 @@
 package com.jarvis.gymtracker.ui.screens.history
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -54,11 +55,12 @@ fun HistoryScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(sessions) { session ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            navController.navigate(Screen.WorkoutSummary.createRoute(session.id))
-                        }
+                    ElevatedCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                navController.navigate(Screen.WorkoutSummary.createRoute(session.id))
+                            }
                     ) {
                         Row(
                             modifier = Modifier
