@@ -1,6 +1,5 @@
 package com.jarvis.gymtracker.ui.screens.workout_session
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +30,26 @@ fun MuscleExercisesScreen(
     val exercisesForGroup by viewModel.exercisesForMuscle(muscleGroup).collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val displayExercises = remember(exercisesForGroup, muscleGroup) {
+        val placeholderPattern = Regex("^${Regex.escape(muscleGroup)} Exercise \\d+$", RegexOption.IGNORE_CASE)
+        val cleaned = exercisesForGroup.filterNot { it.exerciseName.matches(placeholderPattern) }
+        val desired = 15
+        if (cleaned.size >= desired) {
+            cleaned.take(desired)
+        } else {
+            val existingNames = cleaned.map { it.exerciseName.lowercase() }.toSet()
+            val generated = curatedExercisesForMuscleGroup(muscleGroup)
+                .filterNot { it.lowercase() in existingNames }
+                .take(desired - cleaned.size)
+                .map { name ->
+                    com.jarvis.gymtracker.data.local.entity.ExerciseEntity(
+                        muscleGroup = muscleGroup,
+                        exerciseName = name
+                    )
+                }
+            cleaned + generated
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.exerciseAddedEvent.collect { message ->
@@ -52,7 +70,7 @@ fun MuscleExercisesScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        if (exercisesForGroup.isEmpty()) {
+        if (displayExercises.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Text("No exercises available for $muscleGroup")
             }
@@ -64,7 +82,10 @@ fun MuscleExercisesScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(exercisesForGroup) { exercise ->
+                items(
+                    items = displayExercises,
+                    key = { exercise -> if (exercise.id > 0L) exercise.id else "virtual-${muscleGroup}-${exercise.exerciseName}" }
+                ) { exercise ->
                     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(8.dp),

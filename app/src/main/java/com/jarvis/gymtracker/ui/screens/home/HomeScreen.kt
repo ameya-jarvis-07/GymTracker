@@ -1,14 +1,20 @@
 package com.jarvis.gymtracker.ui.screens.home
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -22,6 +28,7 @@ fun HomeScreen(
     navController: NavController,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
+    val haptics = LocalHapticFeedback.current
     val user by viewModel.user.collectAsState()
     val todaySplit by viewModel.todaySplit.collectAsState()
     val todayAttendance by viewModel.todayAttendance.collectAsState()
@@ -63,6 +70,7 @@ fun HomeScreen(
                     split = todaySplit,
                     attendance = todayAttendance,
                     onStartWorkout = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         if (todayAttendance == null) {
                             navController.navigate(Screen.Attendance.route)
                         } else {
@@ -81,7 +89,7 @@ fun HomeScreen(
 
 @Composable
 fun StreakCard(streak: Int) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth().animateContentSize()) {
         Row(
             modifier = Modifier
                 .padding(24.dp)
@@ -111,7 +119,7 @@ fun TodayWorkoutCard(
     attendance: com.jarvis.gymtracker.data.local.entity.AttendanceEntity?,
     onStartWorkout: () -> Unit
 ) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth().animateContentSize()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -150,7 +158,12 @@ fun TodayWorkoutCard(
 
             Button(
                 onClick = onStartWorkout,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .semantics {
+                        contentDescription = if (attendance == null) "Mark attendance" else "Start workout"
+                    },
                 enabled = attendance?.status != "Rest Day"
             ) {
                 Text(if (attendance == null) "Mark Attendance" else "Start Workout")
@@ -161,6 +174,7 @@ fun TodayWorkoutCard(
 
 @Composable
 fun QuickStatsSection() {
+    val animatedAlpha by animateFloatAsState(targetValue = 1f, label = "quick_stats_alpha")
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = "Weekly Progress",
@@ -172,6 +186,7 @@ fun QuickStatsSection() {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(150.dp)
+                .alpha(animatedAlpha)
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(

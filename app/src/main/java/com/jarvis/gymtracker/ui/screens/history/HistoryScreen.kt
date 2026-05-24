@@ -1,5 +1,7 @@
 package com.jarvis.gymtracker.ui.screens.history
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,11 +12,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.jarvis.gymtracker.data.local.entity.WorkoutSessionEntity
+import com.jarvis.gymtracker.ui.components.EmptyState
 import com.jarvis.gymtracker.ui.navigation.Screen
 import java.time.format.DateTimeFormatter
 
@@ -24,6 +31,7 @@ fun HistoryScreen(
     navController: NavController,
     viewModel: HistoryViewModel = hiltViewModel()
 ) {
+    val haptics = LocalHapticFeedback.current
     val sessions by viewModel.sessions.collectAsState()
     val formatter = DateTimeFormatter.ofPattern("EEE, MMM dd, yyyy")
     var sessionToDelete by remember { mutableStateOf<WorkoutSessionEntity?>(null) }
@@ -33,35 +41,35 @@ fun HistoryScreen(
             TopAppBar(title = { Text("Workout History") })
         }
     ) { padding ->
-        if (sessions.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No workouts logged yet.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.outline
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(sessions) { session ->
-                    ElevatedCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                navController.navigate(Screen.WorkoutSummary.createRoute(session.id))
-                            }
-                    ) {
+        Crossfade(targetState = sessions.isEmpty(), label = "history_state") { isEmpty ->
+            if (isEmpty) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyState(message = "No workouts logged yet.")
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(items = sessions, key = { session -> session.id }) { session ->
+                        ElevatedCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .animateContentSize()
+                                .clickable {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    navController.navigate(Screen.WorkoutSummary.createRoute(session.id))
+                                }
+                                .semantics { contentDescription = "Workout on ${session.date.format(formatter)}" }
+                        ) {
                         Row(
                             modifier = Modifier
                                 .padding(16.dp)
@@ -92,7 +100,13 @@ fun HistoryScreen(
                                     color = MaterialTheme.colorScheme.secondary
                                 )
                             }
-                            IconButton(onClick = { sessionToDelete = session }) {
+                            IconButton(
+                                modifier = Modifier.minimumInteractiveComponentSize(),
+                                onClick = {
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    sessionToDelete = session
+                                }
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
                                     contentDescription = "Delete Workout",
@@ -100,6 +114,7 @@ fun HistoryScreen(
                                 )
                             }
                         }
+                    }
                     }
                 }
             }

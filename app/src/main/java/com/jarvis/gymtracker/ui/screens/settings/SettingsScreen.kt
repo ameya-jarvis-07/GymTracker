@@ -1,12 +1,19 @@
 package com.jarvis.gymtracker.ui.screens.settings
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -18,6 +25,7 @@ fun SettingsScreen(
     navController: NavController,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
+    val haptics = LocalHapticFeedback.current
     val darkMode by viewModel.darkMode.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -37,7 +45,8 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .animateContentSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
@@ -47,14 +56,25 @@ fun SettingsScreen(
             )
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .toggleable(
+                        value = darkMode ?: false,
+                        role = Role.Switch,
+                        onValueChange = {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.setDarkMode(it)
+                        }
+                    )
+                    .semantics { contentDescription = "Dark mode" },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("Dark Mode")
                 Switch(
                     checked = darkMode ?: false,
-                    onCheckedChange = { viewModel.setDarkMode(it) }
+                    onCheckedChange = null
                 )
             }
 
@@ -67,8 +87,14 @@ fun SettingsScreen(
             )
 
             Button(
-                onClick = { showDeleteDialog = true },
-                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    showDeleteDialog = true
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .semantics { contentDescription = "Clear all app data" },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             ) {
                 Text("Clear All Data")
@@ -92,6 +118,7 @@ fun SettingsScreen(
                 confirmButton = {
                     TextButton(
                         onClick = {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.clearAllData()
                             showDeleteDialog = false
                             navController.navigate(Screen.Splash.route) {

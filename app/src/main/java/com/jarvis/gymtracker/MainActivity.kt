@@ -16,11 +16,20 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import com.jarvis.gymtracker.ui.MainViewModel
 import com.jarvis.gymtracker.ui.navigation.Screen
 import com.jarvis.gymtracker.ui.screens.attendance.AttendanceScreen
@@ -115,36 +124,128 @@ fun IronLogMainContent() {
 
 @Composable
 fun IronLogNavGraph(navController: androidx.navigation.NavHostController) {
+    // Reusable transition animations
+    val forward: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+        slideInHorizontally(
+            initialOffsetX = { it },
+            animationSpec = tween(300)
+        ) + fadeIn(animationSpec = tween(300))
+    }
+    val backward: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+        slideOutHorizontally(
+            targetOffsetX = { it },
+            animationSpec = tween(300)
+        ) + fadeOut(animationSpec = tween(300))
+    }
+    val backEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+        slideInHorizontally(
+            initialOffsetX = { -it },
+            animationSpec = tween(300)
+        ) + fadeIn(animationSpec = tween(300))
+    }
+
     NavHost(
         navController = navController,
         startDestination = Screen.Splash.route
     ) {
-        composable(Screen.Splash.route) { SplashScreen(navController) }
-        composable(Screen.Onboarding.route) { OnboardingScreen(navController) }
-        composable(Screen.ProfileSetup.route) { ProfileSetupScreen(navController) }
-        composable(Screen.Home.route) { HomeScreen(navController) }
-        composable(Screen.WorkoutSplit.route) { WorkoutSplitScreen(navController) }
-        composable(Screen.Attendance.route) { AttendanceScreen(navController) }
-        composable(Screen.WorkoutSession.route) { WorkoutSessionScreen(navController) }
+        composable(
+            Screen.Splash.route,
+            enterTransition = { fadeIn(animationSpec = tween(500)) },
+            exitTransition = { fadeOut(animationSpec = tween(500)) }
+        ) { SplashScreen(navController) }
+
+        composable(
+            Screen.Onboarding.route,
+            enterTransition = forward,
+            exitTransition = backward
+        ) { OnboardingScreen(navController) }
+
+        composable(
+            Screen.ProfileSetup.route,
+            enterTransition = forward,
+            exitTransition = backward,
+            popEnterTransition = backEnter
+        ) { ProfileSetupScreen(navController) }
+
+        composable(
+            Screen.Home.route,
+            enterTransition = { fadeIn(animationSpec = tween(300)) },
+            exitTransition = { fadeOut(animationSpec = tween(300)) }
+        ) { HomeScreen(navController) }
+
+        composable(
+            Screen.WorkoutSplit.route,
+            enterTransition = forward,
+            exitTransition = backward
+        ) { WorkoutSplitScreen(navController) }
+
+        composable(
+            Screen.Attendance.route,
+            enterTransition = forward,
+            exitTransition = backward,
+            popEnterTransition = backEnter
+        ) { AttendanceScreen(navController) }
+
+        composable(
+            Screen.WorkoutSession.route,
+            enterTransition = forward,
+            exitTransition = backward,
+            popEnterTransition = backEnter
+        ) { WorkoutSessionScreen(navController) }
+
         composable(
             route = Screen.MuscleExercises.route,
+            enterTransition = forward,
+            exitTransition = backward,
+            popEnterTransition = backEnter,
             arguments = listOf(navArgument("muscleGroup") { type = NavType.StringType })
         ) { backStackEntry ->
             val muscleGroup = backStackEntry.arguments?.getString("muscleGroup")?.let { Uri.decode(it) } ?: ""
             MuscleExercisesScreen(navController, muscleGroup)
         }
+
         composable(
             route = Screen.WorkoutSummary.route,
+            enterTransition = forward,
+            exitTransition = backward,
+            popEnterTransition = backEnter,
             arguments = listOf(navArgument("sessionId") { type = NavType.LongType })
         ) { backStackEntry ->
             val sessionId = backStackEntry.arguments?.getLong("sessionId") ?: -1L
             WorkoutSummaryScreen(navController, sessionId)
         }
-        composable(Screen.History.route) { HistoryScreen(navController) }
-        composable(Screen.Progress.route) { ProgressScreen(navController) }
-        composable(Screen.Profile.route) { ProfileScreen(navController) }
-        composable(Screen.Settings.route) { SettingsScreen(navController) }
-        composable(Screen.EditProfile.route) { EditProfileScreen(navController) }
+
+        composable(
+            Screen.History.route,
+            enterTransition = { fadeIn(animationSpec = tween(300)) },
+            exitTransition = { fadeOut(animationSpec = tween(300)) }
+        ) { HistoryScreen(navController) }
+
+        composable(
+            Screen.Progress.route,
+            enterTransition = { fadeIn(animationSpec = tween(300)) },
+            exitTransition = { fadeOut(animationSpec = tween(300)) }
+        ) { ProgressScreen(navController) }
+
+        composable(
+            Screen.Profile.route,
+            enterTransition = { fadeIn(animationSpec = tween(300)) },
+            exitTransition = { fadeOut(animationSpec = tween(300)) }
+        ) { ProfileScreen(navController) }
+
+        composable(
+            Screen.Settings.route,
+            enterTransition = forward,
+            exitTransition = backward,
+            popEnterTransition = backEnter
+        ) { SettingsScreen(navController) }
+
+        composable(
+            Screen.EditProfile.route,
+            enterTransition = forward,
+            exitTransition = backward,
+            popEnterTransition = backEnter
+        ) { EditProfileScreen(navController) }
     }
 }
 

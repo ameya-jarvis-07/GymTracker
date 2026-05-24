@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import android.util.Log
 import java.time.Duration
 import java.time.LocalDate
@@ -80,16 +81,29 @@ class WorkoutSessionViewModel @Inject constructor(
     fun addExerciseToSession(exercise: ExerciseEntity) {
         val currentSession = activeSession.value ?: return
         viewModelScope.launch {
-            val log = ExerciseLogEntity(
-                sessionId = currentSession.id,
-                exerciseId = exercise.id,
-                setNumber = 1,
-                reps = 0,
-                weight = 0.0
-            )
+            var toUse = exercise
             try {
+                // If the exercise is not persisted (id == 0), insert it first and refresh to obtain its DB id
+                if (exercise.id == 0L) {
+                    workoutRepository.insertExercise(exercise)
+                    // fetch current exercises and find the inserted one by name+muscle
+                    val all = workoutRepository.getAllExercises().first()
+                    val found = all
+                        .filter { it.exerciseName == exercise.exerciseName && it.muscleGroup == exercise.muscleGroup }
+                        .maxByOrNull { it.id }
+                    if (found != null) toUse = found
+                }
+
+                val log = ExerciseLogEntity(
+                    sessionId = currentSession.id,
+                    exerciseId = toUse.id,
+                    setNumber = 1,
+                    reps = 0,
+                    weight = 0.0
+                )
+
                 workoutRepository.insertLog(log)
-                _exerciseAddedEvent.emit("Added ${exercise.exerciseName}")
+                _exerciseAddedEvent.emit("Added ${toUse.exerciseName}")
             } catch (e: Exception) {
                 Log.e("WorkoutSessionVM", "Failed to add exercise: ${e.message}")
                 _exerciseAddedEvent.emit("Failed to add exercise")

@@ -2,6 +2,7 @@ package com.jarvis.gymtracker.ui.screens.workout_session
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
 import android.net.Uri
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -103,7 +104,10 @@ fun WorkoutSessionScreen(
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                     }
-                    items(todayMuscleGroups) { muscleGroup ->
+                    items(
+                        items = todayMuscleGroups,
+                        key = { muscleGroup -> muscleGroup }
+                    ) { muscleGroup ->
                         MuscleGroupTile(
                             navController = navController,
                             muscleGroup = muscleGroup,
@@ -120,7 +124,10 @@ fun WorkoutSessionScreen(
                         )
                     }
                 } else {
-                    items(selectedExercises) { exerciseWithLogs ->
+                    items(
+                        items = selectedExercises,
+                        key = { exerciseWithLogs -> exerciseWithLogs.exercise.id }
+                    ) { exerciseWithLogs ->
                         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                             ExerciseCard(
                                 exerciseWithLogs = exerciseWithLogs,
@@ -160,24 +167,74 @@ fun MuscleGroupTile(
     exercises: List<ExerciseEntity>,
     onExerciseSelected: (ExerciseEntity) -> Unit
 ) {
+    // Each muscle tile now supports an expandable dropdown (max 15 items)
     ElevatedCard(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Header is clickable: opens a dedicated screen listing only this muscle group's exercises
-            Text(
-                text = muscleGroup,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                        .fillMaxWidth()
-                                .clickable { navController.navigate(Screen.MuscleExercises.createRoute(Uri.encode(muscleGroup))) }
-            )
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Expand / collapse state per tile (declared before the header so it's visible below)
+            var expanded by rememberSaveable(muscleGroup) { mutableStateOf(false) }
+
+            // Header row with clickable title (navigates to dedicated muscle screen) and expand toggle
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = muscleGroup,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { navController.navigate(Screen.MuscleExercises.createRoute(Uri.encode(muscleGroup))) }
+                )
+
+                IconButton(onClick = { expanded = !expanded }) {
+                    // Use ASCII indicators to avoid dependency on extended icon pack
+                    Text(if (expanded) "^" else "v")
+                }
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
-            exercises.forEach { exercise ->
-                OutlinedButton(
-                    onClick = { onExerciseSelected(exercise) },
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
-                ) {
-                    Text(exercise.exerciseName)
+
+            // No preview when collapsed; only show exercises when expanded. Limit to first 15.
+            // If not enough exercises are present in DB for this muscle, fill from curated exercise names up to 15
+            val limited = run {
+                val placeholderPattern = Regex("^${Regex.escape(muscleGroup)} Exercise \\d+$", RegexOption.IGNORE_CASE)
+                val cleanedExercises = exercises.filterNot { it.exerciseName.matches(placeholderPattern) }
+                val desired = 15
+                if (cleanedExercises.size >= desired) cleanedExercises.take(desired)
+                else {
+                    val existingNames = cleanedExercises.map { it.exerciseName.lowercase() }.toSet()
+                    val curated = curatedExercisesForMuscleGroup(muscleGroup)
+                    val generated = curated
+                        .filterNot { it.lowercase() in existingNames }
+                        .take(desired - cleanedExercises.size)
+                        .map { name ->
+                            ExerciseEntity(
+                                muscleGroup = muscleGroup,
+                                exerciseName = name
+                            )
+                        }
+                    cleanedExercises + generated
+                }
+            }
+            AnimatedVisibility(visible = expanded) {
+                Column {
+                    if (limited.isEmpty()) {
+                        Text(
+                            text = "No exercises available",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                    } else {
+                        limited.forEach { exercise ->
+                            OutlinedButton(
+                                onClick = { onExerciseSelected(exercise) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 2.dp)
+                            ) {
+                                Text(exercise.exerciseName)
+                            }
+                        }
+                    }
                 }
             }
         }
