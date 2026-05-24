@@ -10,6 +10,15 @@ android {
     namespace = "com.jarvis.gymtracker"
     compileSdk = 35
 
+    signingConfigs {
+        create("release") {
+            keyAlias = "gymtracker_key"
+            keyPassword = "GymTracker@2026"
+            storeFile = file("keystore.jks")
+            storePassword = "GymTracker@2026"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.jarvis.gymtracker"
         minSdk = 26
@@ -27,6 +36,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
