@@ -33,7 +33,9 @@ import com.jarvis.gymtracker.ui.screens.profile_setup.ProfileSetupScreen
 import com.jarvis.gymtracker.ui.screens.progress.ProgressScreen
 import com.jarvis.gymtracker.ui.screens.settings.SettingsScreen
 import com.jarvis.gymtracker.ui.screens.splash.SplashScreen
+import android.net.Uri
 import com.jarvis.gymtracker.ui.screens.workout_session.WorkoutSessionScreen
+import com.jarvis.gymtracker.ui.screens.workout_session.MuscleExercisesScreen
 import com.jarvis.gymtracker.ui.screens.workout_split.WorkoutSplitScreen
 import com.jarvis.gymtracker.ui.screens.workout_summary.WorkoutSummaryScreen
 import com.jarvis.gymtracker.ui.theme.GymTrackerTheme
@@ -124,6 +126,13 @@ fun IronLogNavGraph(navController: androidx.navigation.NavHostController) {
         composable(Screen.WorkoutSplit.route) { WorkoutSplitScreen(navController) }
         composable(Screen.Attendance.route) { AttendanceScreen(navController) }
         composable(Screen.WorkoutSession.route) { WorkoutSessionScreen(navController) }
+        composable(
+            route = Screen.MuscleExercises.route,
+            arguments = listOf(navArgument("muscleGroup") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val muscleGroup = backStackEntry.arguments?.getString("muscleGroup")?.let { Uri.decode(it) } ?: ""
+            MuscleExercisesScreen(navController, muscleGroup)
+        }
         composable(
             route = Screen.WorkoutSummary.route,
             arguments = listOf(navArgument("sessionId") { type = NavType.LongType })

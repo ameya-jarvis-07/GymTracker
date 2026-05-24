@@ -57,7 +57,7 @@ fun SplashScreen(
         }
     }
 
-    // Using a cream background color to match the uploaded logo style
+    // Using the cream background color to match the uploaded logo design
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -65,10 +65,10 @@ fun SplashScreen(
             .background(Color(0xFFFFF9F2))
     ) {
         Image(
-            painter = painterResource(id = R.drawable.ic_logo),
+            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
             contentDescription = "IronLog Logo",
             modifier = Modifier
-                .size(280.dp)
+                .size(300.dp)
                 .scale(scale.value)
         )
     }

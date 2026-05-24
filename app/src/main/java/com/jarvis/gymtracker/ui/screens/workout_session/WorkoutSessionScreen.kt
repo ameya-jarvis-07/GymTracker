@@ -1,6 +1,8 @@
 package com.jarvis.gymtracker.ui.screens.workout_session
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import android.net.Uri
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -88,6 +90,7 @@ fun WorkoutSessionScreen(
                     }
                     items(todayMuscleGroups) { muscleGroup ->
                         MuscleGroupTile(
+                            navController = navController,
                             muscleGroup = muscleGroup,
                             exercises = availableExercises.filter { it.muscleGroup == muscleGroup },
                             onExerciseSelected = { viewModel.addExerciseToSession(it) }
@@ -121,6 +124,7 @@ fun WorkoutSessionScreen(
 
 @Composable
 fun MuscleGroupTile(
+    navController: NavController,
     muscleGroup: String,
     exercises: List<ExerciseEntity>,
     onExerciseSelected: (ExerciseEntity) -> Unit
@@ -130,7 +134,15 @@ fun MuscleGroupTile(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = muscleGroup, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            // Header is clickable: opens a dedicated screen listing only this muscle group's exercises
+            Text(
+                text = muscleGroup,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                        .fillMaxWidth()
+                                .clickable { navController.navigate(Screen.MuscleExercises.createRoute(Uri.encode(muscleGroup))) }
+            )
             Spacer(modifier = Modifier.height(8.dp))
             exercises.forEach { exercise ->
                 OutlinedButton(

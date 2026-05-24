@@ -56,6 +56,13 @@ class WorkoutSessionViewModel @Inject constructor(
     val availableExercises: StateFlow<List<ExerciseEntity>> = workoutRepository.getAllExercises()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /**
+     * Returns a StateFlow of exercises for a single muscle group. Caller may collectAsState() in a composable.
+     */
+    fun exercisesForMuscle(muscleGroup: String): StateFlow<List<ExerciseEntity>> =
+        workoutRepository.getExercisesByMuscleGroup(muscleGroup)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     fun startNewSession() {
         viewModelScope.launch {
             val session = WorkoutSessionEntity(

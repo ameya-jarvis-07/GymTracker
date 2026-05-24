@@ -11,6 +11,9 @@ sealed class Screen(val route: String) {
     object WorkoutSummary : Screen("workout_summary/{sessionId}") {
         fun createRoute(sessionId: Long) = "workout_summary/$sessionId"
     }
+    object MuscleExercises : Screen("muscle_exercises/{muscleGroup}") {
+        fun createRoute(muscleGroup: String) = "muscle_exercises/$muscleGroup"
+    }
     object History : Screen("history")
     object Progress : Screen("progress")
     object Profile : Screen("profile")
